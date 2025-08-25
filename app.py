@@ -6,8 +6,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import matplotlib.pyplot as plt
 import io
 import base64
+import os
+
 app = Flask(__name__)
-app.secret_key = '7a2940671822387e3d95b6949f39f0c4'
+
+app.secret_key = os.environ.get("SECRET_KEY", "fallback-secret")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///parking_system.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False    
 db.init_app(app)
