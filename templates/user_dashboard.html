@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Dashboard | ParkEase</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { padding-top: 70px; background-color: #f8f9fa; }
+        .card { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#"><i class="fas fa-car me-2"></i>ParkEase - User</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('user_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('history') }}">
+                        <i class="fas fa-clock-rotate-left me-1"></i>Booking History
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('logout') }}">
+                        <i class="fas fa-sign-out-alt me-1"></i>Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Page Content -->
+<div class="container">
+    <h2 class="mt-4">Welcome, {{ current_user.username }}!</h2>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Active Reservation -->
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5>Your Active Reservation</h5>
+        </div>
+        <div class="card-body">
+            {% if reservation %}
+                {% for res in reservation %}
+                    <p><strong>Spot:</strong> {{ res.spot_id }}</p>
+                    <p><strong>Vehicle Number:</strong> {{ res.vehicle_number }}</p>
+                    <p><strong>Reserved At:</strong> {{ res.reservation_timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Parking Time:</strong> {{ res.parking_timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Cost/hr:</strong> ₹{{ res.parking_cost_per_time }}</p>
+                    <p><strong>Status:</strong> <span class="badge bg-warning">{{ res.payment_status }}</span></p>
+                    <form method="POST" action="{{ url_for('occupy_spot', reservation_id=res.reservation_id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-success">Occupy Spot</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('release_spot', reservation_id=res.reservation_id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-danger">Release Spot</button>
+                    </form>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">No active reservation.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Available Lots -->
+<h4 class="mt-4">Available Parking Lots</h4>
+<div class="row">
+    {% for lot in lots %}
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body">
+                <h5 class="card-title">{{ lot.prime_location_name }}</h5>
+                <p class="card-text">Location: {{ lot.address }}</p>
+                <p class="card-text">Total Spots: {{ lot.capacity }}</p>
+                <p class="card-text">Rate: ₹{{ lot.price }} per hour</p>
+
+                <!-- Reservation Form (Auto-allocate first spot) -->
+                <form method="POST" action="{{ url_for('reserve_spot', lot_id=lot.lot_id) }}">
+                    <div class="mb-2">
+                        <label class="form-label">Vehicle Number</label>
+                        <input type="text" class="form-control" name="vehicle_number" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Parking Timestamp</label>
+                        <input type="datetime-local" class="form-control" name="parking_time" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Reserve in This Lot</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

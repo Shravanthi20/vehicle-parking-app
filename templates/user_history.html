@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.username }} - Parking History | Admin</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .card-hover:hover {
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .status-active {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .status-completed {
+            background-color: #d1edff;
+            border-left: 4px solid #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-car me-2"></i>Parking Admin
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_users') }}">
+                            <i class="fas fa-users me-1"></i>Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="fas fa-history me-2"></i>Parking History</h2>
+                <p class="text-muted mb-0">User: <strong>{{ user.username }}</strong> ({{ user.email }})</p>
+            </div>
+            <a href="{{ url_for('view_users') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Users
+            </a>
+        </div>
+
+        <!-- User Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Total Reservations</h6>
+                                <h3 class="mb-0">{{ reservations|length }}</h3>
+                            </div>
+                            <i class="fas fa-calendar fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Completed</h6>
+                                <h3 class="mb-0">{{ reservations|selectattr('reservation.payment_status', 'equalto', 'Paid')|list|length }}</h3>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Active</h6>
+                                <h3 class="mb-0">{{ reservations|selectattr('reservation.payment_status', 'equalto', 'Pending')|list|length }}</h3>
+                            </div>
+                            <i class="fas fa-clock fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info card-hover">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Total Spent</h6>
+                                <h3 class="mb-0">₹{{ "%.2f"|format(reservations|selectattr('payment')|sum(attribute='payment.amount')) }}</h3>
+                            </div>
+                            <i class="fas fa-rupee-sign fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parking History Table -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Complete Parking History</h5>
+            </div>
+            <div class="card-body">
+                {% if reservations %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Parking Lot</th>
+                                <th>Spot</th>
+                                <th>Vehicle</th>
+                                <th>Duration</th>
+                                <th>Cost</th>
+                                <th>Status</th>
+                                <th>Payment Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for detail in reservations %}
+                            <tr class="{% if detail.reservation.payment_status == 'Pending' %}status-active{% else %}status-completed{% endif %}">
+                                <td>
+                                    <strong>{{ detail.reservation.parking_timestamp.strftime('%Y-%m-%d') }}</strong><br>
+                                    <small class="text-muted">{{ detail.reservation.parking_timestamp.strftime('%H:%M') }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ detail.lot.prime_location_name if detail.lot else 'N/A' }}</strong><br>
+                                    <small class="text-muted">{{ detail.lot.address if detail.lot else 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ detail.spot.spot_number if detail.spot else 'N/A' }}</span>
+                                </td>
+                                <td>
+                                    <strong>{{ detail.reservation.vehicle_number }}</strong>
+                                </td>
+                                <td>
+                                    {% if detail.reservation.leaving_timestamp %}
+                                        {% set duration = detail.reservation.leaving_timestamp - detail.reservation.parking_timestamp %}
+                                        {% set hours = duration.total_seconds() / 3600 %}
+                                        {{ "%.1f"|format(hours) }} hours
+                                    {% else %}
+                                        <span class="text-muted">Ongoing</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if detail.payment %}
+                                        <strong>₹{{ "%.2f"|format(detail.payment.amount) }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if detail.reservation.payment_status == 'Paid' %}
+                                        <span class="badge bg-success">Completed</span>
+                                    {% elif detail.reservation.payment_status == 'Pending' %}
+                                        <span class="badge bg-warning text-dark">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ detail.reservation.payment_status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if detail.payment %}
+                                        <small>{{ detail.payment.payment_method }}</small><br>
+                                        <small class="text-muted">{{ detail.payment.payment_timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Parking History</h5>
+                    <p class="text-muted">This user hasn't made any parking reservations yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Additional Details -->
+        {% if reservations %}
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Parking Patterns</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Most Used Lot:</strong> 
+                            {% set lot_counts = {} %}
+                            {% for detail in reservations if detail.lot %}
+                                {% set lot_name = detail.lot.prime_location_name %}
+                                {% set _ = lot_counts.update({lot_name: lot_counts.get(lot_name, 0) + 1}) %}
+                            {% endfor %}
+                            {% if lot_counts %}
+                                {{ lot_counts.items()|sort(attribute='1', reverse=true)|first|first }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                        <p><strong>Average Duration:</strong> 
+                            {% set completed_reservations = reservations|selectattr('reservation.leaving_timestamp')|list %}
+                            {% if completed_reservations %}
+                                {% set total_hours = 0 %}
+                                {% for detail in completed_reservations %}
+                                    {% set duration = detail.reservation.leaving_timestamp - detail.reservation.parking_timestamp %}
+                                    {% set total_hours = total_hours + (duration.total_seconds() / 3600) %}
+                                {% endfor %}
+                                {{ "%.1f"|format(total_hours / completed_reservations|length) }} hours
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>User Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Username:</strong> {{ user.username }}</p>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Role:</strong> 
+                            {% if user.role == 'admin' %}
+                                <span class="badge bg-danger">Admin</span>
+                            {% else %}
+                                <span class="badge bg-primary">User</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Member Since:</strong> 
+                            {% if reservations %}
+                                {% set last_reservation = reservations|last %}
+                                {{ last_reservation.reservation.reservation_timestamp.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
