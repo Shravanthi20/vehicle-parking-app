@@ -8,6 +8,10 @@ import io
 import base64
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = Flask(__name__)
 
 app.secret_key = os.environ.get("SECRET_KEY", "fallback-secret")
@@ -117,8 +121,9 @@ def register():
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            flash('Registration successful! Kindly Login with the same credentials', 'success')
-            return redirect(url_for('login'))
+            login_user(user)
+            flash('Registration successful! Welcome to your dashboard.', 'success')
+            return redirect(url_for('user_dashboard'))
     return render_template('register.html')
 
 @app.route('/admin_dashboard')
@@ -493,12 +498,11 @@ def occupy_spot(reservation_id):
         flash('Access denied.', 'danger')
         return redirect(url_for('user_dashboard'))
 
-    if reservation.parking_timestamp > datetime.now():
-        flash('Cannot occupy before parking time.', 'warning')
-        return redirect(url_for('user_dashboard'))
+    # Update the parking timestamp to the actual time of occupation
+    reservation.parking_timestamp = datetime.now()
+    db.session.commit()
 
-    # Could optionally log the occupancy time
-    flash(f'Spot {reservation.spot_id} marked as occupied.', 'success')
+    flash(f'Spot {reservation.spot_id} occupancy confirmed. Timer started at {reservation.parking_timestamp.strftime("%H:%M")}.', 'success')
     return redirect(url_for('user_dashboard'))
 
 
